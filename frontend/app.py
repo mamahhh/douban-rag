@@ -1,9 +1,10 @@
 import streamlit as st
 import requests
 import json
+import os
 
-# Constants
-BACKEND_URL = "http://localhost:8000"
+# Constants - Use environment variable for Cloud Run, default to localhost for local dev
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 API_URL = f"{BACKEND_URL}/api"
 
 st.set_page_config(

@@ -12,3 +12,5 @@ python-multipart
 python-dotenv
 openpyxl
 mcp
+streamlit
+requests
