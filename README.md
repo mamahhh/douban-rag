@@ -4,7 +4,7 @@ A RAG (Retrieval-Augmented Generation) system for querying your Douban (豆瓣) 
 
 ## Features
 
-- 📤 **Upload Douban exports** - Support for CSV and XLSX files from 豆伴 or other export tools
+- 📤 **Upload Douban exports** - Support for CSV and XLSX files from [豆伴](https://chromewebstore.google.com/detail/%E8%B1%86%E4%BC%B4%EF%BC%9A%E8%B1%86%E7%93%A3%E8%B4%A6%E5%8F%B7%E5%A4%87%E4%BB%BD%E5%B7%A5%E5%85%B7/ghppfgfeoafdcaebjoglabppkfmbcjdd) or other export tools
 - 🔍 **Semantic search** - Find content based on meaning, not just keywords
 - 💬 **Natural language Q&A** - Ask questions about your viewing/reading history
 - 🔄 **MCP Integration** - Connect to AI assistants like Claude, Gemini, ChatGPT
@@ -54,7 +54,7 @@ streamlit run app.py --server.port 8501
 ### 4. Upload Your Data
 
 1. Open http://localhost:8501
-2. Upload your Douban export file (from 豆伴 or similar)
+2. Upload your Douban export file (from [豆伴](https://chromewebstore.google.com/detail/%E8%B1%86%E4%BC%B4%EF%BC%9A%E8%B1%86%E7%93%A3%E8%B4%A6%E5%8F%B7%E5%A4%87%E4%BB%BD%E5%B7%A5%E5%85%B7/ghppfgfeoafdcaebjoglabppkfmbcjdd) or similar)
 3. Start chatting with your data!
 
 ## MCP Integration

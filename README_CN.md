@@ -4,7 +4,7 @@
 
 ## 功能特性
 
-- 📤 **上传豆瓣导出数据** - 支持豆伴等工具导出的 CSV 和 XLSX 文件
+- 📤 **上传豆瓣导出数据** - 支持[豆伴](https://chromewebstore.google.com/detail/%E8%B1%86%E4%BC%B4%EF%BC%9A%E8%B1%86%E7%93%A3%E8%B4%A6%E5%8F%B7%E5%A4%87%E4%BB%BD%E5%B7%A5%E5%85%B7/ghppfgfeoafdcaebjoglabppkfmbcjdd)等工具导出的 CSV 和 XLSX 文件
 - 🔍 **语义搜索** - 基于语义理解查找内容，而非简单关键词匹配
 - 💬 **自然语言问答** - 用中文询问你的观影/阅读历史
 - 🔄 **MCP 集成** - 连接 Claude、Gemini、ChatGPT 等 AI 助手
@@ -54,7 +54,7 @@ streamlit run app.py --server.port 8501
 ### 4. 上传数据
 
 1. 打开 http://localhost:8501
-2. 上传你的豆瓣导出文件（豆伴导出的 Excel 文件）
+2. 上传你的豆瓣导出文件（[豆伴](https://chromewebstore.google.com/detail/%E8%B1%86%E4%BC%B4%EF%BC%9A%E8%B1%86%E7%93%A3%E8%B4%A6%E5%8F%B7%E5%A4%87%E4%BB%BD%E5%B7%A5%E5%85%B7/ghppfgfeoafdcaebjoglabppkfmbcjdd)导出的 Excel 文件）
 3. 开始与你的数据对话！
 
 ## MCP 集成
