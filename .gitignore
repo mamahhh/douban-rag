@@ -36,8 +36,12 @@ ENV/
 .env
 .env.local
 
-# Firebase service account (contains secrets)
-firebase-service-account.json
+# Secrets and keys
+*.json # Exclude JSON key files to be safe (service accounts)
+!package.json # Allow package.json if needed
+!tsconfig.json # Allow tsconfig if needed
+service-account-*.json
+gcp-key.json
 
 # Data files (user-specific)
 data/raw/
