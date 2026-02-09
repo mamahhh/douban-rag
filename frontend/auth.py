@@ -179,30 +179,31 @@ def show_auth_page():
     st.title("🔐 欢迎使用 Douban RAG System")
     st.markdown("请登录或注册以继续使用")
     
-    # Check for API key configuration
-    if not FIREBASE_API_KEY:
-        st.error("⚠️ Firebase 未配置。请在 .env 文件中设置 FIREBASE_API_KEY。")
-        st.info("详细配置说明请参考 docs/firebase_setup.md")
-        return False
-    
-    tab1, tab2 = st.tabs(["🔑 登录", "📝 注册"])
-    
-    with tab1:
-        show_login_form()
-    
-    with tab2:
-        show_register_form()
-    
-    # Divider and Google sign-in (if configured)
-    google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
-    if google_client_id:
+    # Show Login/Register tabs only if Firebase is configured
+    if FIREBASE_API_KEY:
+        tab1, tab2 = st.tabs(["🔑 登录", "📝 注册"])
+        
+        with tab1:
+            show_login_form()
+        
+        with tab2:
+            show_register_form()
+            
         st.divider()
+
+    # Always show Demo Mode button
+    st.markdown("**演示/测试模式**")
+    if st.button("进入演示模式", type="secondary" if FIREBASE_API_KEY else "primary", use_container_width=True):
+        st.session_state["request_demo_login"] = True
+        st.rerun()
+
+    # Google sign-in (if configured)
+    google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
+    if google_client_id and FIREBASE_API_KEY:
         st.markdown("**或使用其他方式登录**")
         
         if st.button("🔵 使用 Google 账户登录", use_container_width=True):
             st.info("🔄 正在跳转到 Google 登录...")
-            # Note: Full Google OAuth requires proper redirect handling
-            # This is typically done with a custom component or external redirect
             st.markdown(f"[点击这里手动登录 Google]({get_google_oauth_url()})")
     
     return False

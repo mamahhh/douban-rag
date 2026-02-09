@@ -9,11 +9,29 @@ from auth import (
     is_authenticated, 
     get_auth_token, 
     show_user_sidebar,
-    init_session_state
+    init_session_state,
+    get_current_user_info
 )
 
 # Initialize auth session state
 init_session_state()
+
+def login_as_demo():
+    """Login as a demo user without Firebase."""
+    st.session_state.auth = {
+        "logged_in": True,
+        "id_token": "demo-token",
+        "refresh_token": None,
+        "user": {
+            "uid": "demo-user",
+            "email": "demo@example.com",
+            "display_name": "Demo User",
+            "email_verified": True,
+        },
+        "remember_me": False,
+    }
+    st.success("已进入演示模式!")
+    st.rerun()
 
 # Constants - Use environment variable for Cloud Run, default to localhost for local dev
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
@@ -27,6 +45,11 @@ st.set_page_config(
 
 # Check authentication first - show login page if not authenticated
 if not is_authenticated():
+    # Check for demo login request from auth page
+    if st.session_state.get("request_demo_login", False):
+        st.session_state["request_demo_login"] = False # Reset flag
+        login_as_demo()
+    
     show_auth_page()
     st.stop()
 
@@ -119,40 +142,76 @@ def process_upload_with_progress(uploaded_file):
 
 
 # Sidebar for configuration & Upload
+
+def display_upload_result(result, success_msg_template="✅ 成功导入 {count} 条记录!"):
+    """Helper to display upload results and media type breakdown."""
+    if not result:
+        return
+
+    count = result.get('documents_processed', 0)
+    st.success(success_msg_template.format(count=count))
+    
+    # Show media type breakdown
+    media_types = result.get('media_types', {})
+    if media_types:
+        st.write("**导入内容:**")
+        type_names = {
+            "movie": "电影",
+            "book": "书籍", 
+            "music": "音乐",
+            "game": "游戏",
+            "drama": "舞台剧",
+            "unknown": "其他"
+        }
+        for mt, count in media_types.items():
+            name = type_names.get(mt, mt)
+            st.write(f"  - {name}: {count} 条")
+
+
+# Sidebar for configuration & Upload
 with st.sidebar:
     # Show user info and logout button
     show_user_sidebar()
     
     st.header("数据管理")
     
-    uploaded_file = st.file_uploader(
-        "上传豆瓣数据 (.csv 或 .xlsx)", 
-        type=['csv', 'xlsx'],
-        help="支持豆伴导出的 Excel 文件或单独的 CSV 文件"
-    )
+    # Check if this is a demo user
+    user = get_current_user_info()
+    is_demo = user and user.get("uid") == "demo-user"
     
-    if uploaded_file is not None:
-        if st.button("开始导入", type="primary"):
-            result = process_upload_with_progress(uploaded_file)
+    if is_demo:
+        st.info("演示模式: 仅限使用默认数据。")
+        if st.button("加载默认演示数据", type="primary", use_container_width=True):
+            # Locate the demo file relative to frontend/app.py
+            # Assuming we run from frontend/ or root, try to find it
+            demo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data/demo.xlsx"))
             
-            if result:
-                st.success(f"✅ 成功导入 {result.get('documents_processed')} 条记录!")
-                
-                # Show media type breakdown
-                media_types = result.get('media_types', {})
-                if media_types:
-                    st.write("**导入内容:**")
-                    type_names = {
-                        "movie": "🎬 电影",
-                        "book": "📖 书籍", 
-                        "music": "🎵 音乐",
-                        "game": "🎮 游戏",
-                        "drama": "🎭 舞台剧",
-                        "unknown": "❓ 其他"
-                    }
-                    for mt, count in media_types.items():
-                        name = type_names.get(mt, mt)
-                        st.write(f"  - {name}: {count} 条")
+            if os.path.exists(demo_path):
+                with open(demo_path, "rb") as f:
+                    # Create a file-like object with a name attribute for requests
+                    import io
+                    file_content = f.read()
+                    file_obj = io.BytesIO(file_content)
+                    file_obj.name = "demo.xlsx"
+                    
+                    # Manually trigger upload
+                    result = process_upload_with_progress(file_obj)
+                    display_upload_result(result, "成功加载演示数据! ({count} 条记录)")
+            else:
+                st.error(f"无法找到演示数据文件: {demo_path}")
+    else:
+        # Standard upload button logic (Only show if NOT demo)
+        uploaded_file = st.file_uploader(
+            "上传豆瓣数据 (.csv 或 .xlsx)", 
+            type=['csv', 'xlsx'],
+            help="支持豆伴导出的 Excel 文件或单独的 CSV 文件",
+            key="file_uploader"
+        )
+        
+        if uploaded_file is not None:
+            if st.button("开始导入", type="primary", key="upload_btn"):
+                result = process_upload_with_progress(uploaded_file)
+                display_upload_result(result)
 
     st.divider()
     
