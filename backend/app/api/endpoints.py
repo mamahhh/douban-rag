@@ -2,14 +2,14 @@
 API endpoints for the Douban RAG system.
 """
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import shutil
 import os
 import json
 import time
-from typing import Generator
+from typing import Generator, Optional
 from app.core.config import settings
 from app.rag.ingestion import create_index, get_vector_store
 from app.rag.preprocessing import (
@@ -17,6 +17,7 @@ from app.rag.preprocessing import (
 )
 from app.rag.engine import get_chat_engine
 from app.rag.settings import init_settings
+from app.auth import get_current_user, User
 import pandas as pd
 
 router = APIRouter()
@@ -40,9 +41,13 @@ class UploadResponse(BaseModel):
     media_types: dict
 
 
-def stream_progress(file_path: str) -> Generator[str, None, None]:
+def stream_progress(file_path: str, user_id: str = None) -> Generator[str, None, None]:
     """
     Generator that yields SSE events with progress updates.
+    
+    Args:
+        file_path: Path to the uploaded file
+        user_id: User ID for user-scoped data storage
     """
     start_time = time.time()
     documents = []
@@ -120,7 +125,7 @@ def stream_progress(file_path: str) -> Generator[str, None, None]:
         
         from llama_index.core import VectorStoreIndex, StorageContext
         
-        vector_store = get_vector_store()
+        vector_store = get_vector_store(user_id=user_id)
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
         
         # Create index with progress updates
@@ -164,10 +169,15 @@ def stream_progress(file_path: str) -> Generator[str, None, None]:
 
 
 @router.post("/upload/stream")
-async def upload_file_stream(file: UploadFile = File(...)):
+async def upload_file_stream(
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user)
+):
     """
     Upload and process a Douban export file with streaming progress updates.
     Returns Server-Sent Events with progress information.
+    
+    Requires authentication. Data is stored in user-specific collection.
     """
     # Validate file extension
     file_ext = os.path.splitext(file.filename)[1].lower()
@@ -177,18 +187,19 @@ async def upload_file_stream(file: UploadFile = File(...)):
             detail=f"Invalid file type. Please upload one of: {', '.join(VALID_EXTENSIONS)}"
         )
     
-    # Ensure data directory exists
-    os.makedirs(settings.DATA_DIR, exist_ok=True)
+    # Ensure user-specific data directory exists
+    user_data_dir = os.path.join(settings.DATA_DIR, user.uid)
+    os.makedirs(user_data_dir, exist_ok=True)
     
-    file_path = os.path.join(settings.DATA_DIR, file.filename)
+    file_path = os.path.join(user_data_dir, file.filename)
     
     # Save uploaded file first
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    # Return streaming response with progress updates
+    # Return streaming response with progress updates (user-scoped)
     return StreamingResponse(
-        stream_progress(file_path),
+        stream_progress(file_path, user_id=user.uid),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -199,10 +210,15 @@ async def upload_file_stream(file: UploadFile = File(...)):
 
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user)
+):
     """
     Upload and process a Douban export file (CSV or XLSX).
     Non-streaming version for backwards compatibility.
+    
+    Requires authentication. Data is stored in user-specific collection.
     """
     from app.rag.ingestion import process_douban_file
     
@@ -214,8 +230,10 @@ async def upload_file(file: UploadFile = File(...)):
             detail=f"Invalid file type. Please upload one of: {', '.join(VALID_EXTENSIONS)}"
         )
     
-    os.makedirs(settings.DATA_DIR, exist_ok=True)
-    file_path = os.path.join(settings.DATA_DIR, file.filename)
+    # Use user-specific data directory
+    user_data_dir = os.path.join(settings.DATA_DIR, user.uid)
+    os.makedirs(user_data_dir, exist_ok=True)
+    file_path = os.path.join(user_data_dir, file.filename)
     
     try:
         with open(file_path, "wb") as buffer:
@@ -234,7 +252,8 @@ async def upload_file(file: UploadFile = File(...)):
             mt = doc.metadata.get("media_type", "unknown")
             media_type_counts[mt] = media_type_counts.get(mt, 0) + 1
         
-        create_index(documents)
+        # Create index with user-scoped storage
+        create_index(documents, user_id=user.uid)
         
         return UploadResponse(
             message="File uploaded and indexed successfully",
@@ -250,10 +269,18 @@ async def upload_file(file: UploadFile = File(...)):
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    """Chat with the RAG system about your Douban history."""
+async def chat(
+    request: ChatRequest,
+    user: User = Depends(get_current_user)
+):
+    """
+    Chat with the RAG system about your Douban history.
+    
+    Requires authentication. Only queries user's own data.
+    """
     try:
-        chat_engine = get_chat_engine()
+        # Get chat engine with user-scoped data access
+        chat_engine = get_chat_engine(user_id=user.uid)
         response = chat_engine.chat(request.message)
         return ChatResponse(response=str(response))
     except Exception as e:
@@ -264,3 +291,18 @@ async def chat(request: ChatRequest):
                 detail="No data indexed yet. Please upload a Douban export file first."
             )
         raise HTTPException(status_code=500, detail=error_str)
+
+
+@router.get("/auth/verify")
+async def verify_auth(user: User = Depends(get_current_user)):
+    """
+    Verify the current user's authentication token.
+    Returns user info if token is valid.
+    """
+    return {
+        "authenticated": True,
+        "uid": user.uid,
+        "email": user.email,
+        "display_name": user.display_name,
+        "email_verified": user.email_verified,
+    }

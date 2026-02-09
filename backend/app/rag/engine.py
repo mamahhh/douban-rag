@@ -1,12 +1,20 @@
 from app.rag.ingestion import load_index
 from app.rag.settings import init_settings, get_reranker
 
-def get_chat_engine():
+
+def get_chat_engine(user_id: str = None):
+    """
+    Get a chat engine for querying the user's Douban data.
+    
+    Args:
+        user_id: Optional user ID for user-scoped queries.
+                 If provided, queries the user's specific collection.
+    """
     # Ensure settings are initialized (API keys, models)
     init_settings()
     
-    # Load existing index
-    index = load_index()
+    # Load existing index (user-scoped if user_id provided)
+    index = load_index(user_id=user_id)
     
     # Get the BGE reranker for improved retrieval quality
     reranker = get_reranker()
@@ -23,3 +31,4 @@ def get_chat_engine():
         )
     )
     return chat_engine
+

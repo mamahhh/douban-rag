@@ -34,13 +34,16 @@ steps:
       - '1'
       - '--allow-unauthenticated'
       - '--set-env-vars'
-      - 'GOOGLE_API_KEY=${_GOOGLE_API_KEY}'
+      - 'GOOGLE_API_KEY=${_GOOGLE_API_KEY},FIREBASE_API_KEY=${_FIREBASE_API_KEY},FIREBASE_PROJECT_ID=${_FIREBASE_PROJECT_ID},FIREBASE_AUTH_DOMAIN=${_FIREBASE_AUTH_DOMAIN}'
 
 images:
   - 'gcr.io/$PROJECT_ID/douban-rag:$COMMIT_SHA'
 
 substitutions:
   _GOOGLE_API_KEY: ''
+  _FIREBASE_API_KEY: ''
+  _FIREBASE_PROJECT_ID: ''
+  _FIREBASE_AUTH_DOMAIN: ''
 
 options:
   logging: CLOUD_LOGGING_ONLY

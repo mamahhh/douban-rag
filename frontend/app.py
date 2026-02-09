@@ -3,6 +3,18 @@ import requests
 import json
 import os
 
+# Import authentication module
+from auth import (
+    show_auth_page, 
+    is_authenticated, 
+    get_auth_token, 
+    show_user_sidebar,
+    init_session_state
+)
+
+# Initialize auth session state
+init_session_state()
+
 # Constants - Use environment variable for Cloud Run, default to localhost for local dev
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 API_URL = f"{BACKEND_URL}/api"
@@ -13,7 +25,21 @@ st.set_page_config(
     layout="wide"
 )
 
+# Check authentication first - show login page if not authenticated
+if not is_authenticated():
+    show_auth_page()
+    st.stop()
+
+# User is authenticated - show main app
 st.title("Douban RAG System 📚")
+
+
+def get_auth_headers():
+    """Get authorization headers for API requests."""
+    token = get_auth_token()
+    if token:
+        return {"Authorization": f"Bearer {token}"}
+    return {}
 
 
 def process_upload_with_progress(uploaded_file):
@@ -30,11 +56,12 @@ def process_upload_with_progress(uploaded_file):
     eta_text = st.empty()
     
     try:
-        # Use the streaming endpoint
+        # Use the streaming endpoint with authentication
         files = {"file": (uploaded_file.name, uploaded_file, content_type)}
         response = requests.post(
             f"{API_URL}/upload/stream",
             files=files,
+            headers=get_auth_headers(),
             stream=True
         )
         
@@ -93,6 +120,9 @@ def process_upload_with_progress(uploaded_file):
 
 # Sidebar for configuration & Upload
 with st.sidebar:
+    # Show user info and logout button
+    show_user_sidebar()
+    
     st.header("数据管理")
     
     uploaded_file = st.file_uploader(
@@ -157,7 +187,11 @@ if prompt := st.chat_input("询问你的豆瓣记录..."):
     with st.chat_message("assistant"):
         with st.spinner("思考中..."):
             try:
-                response = requests.post(f"{API_URL}/chat", json={"message": prompt})
+                response = requests.post(
+                    f"{API_URL}/chat", 
+                    json={"message": prompt},
+                    headers=get_auth_headers()
+                )
                 if response.status_code == 200:
                     bot_reply = response.json().get("response")
                     st.markdown(bot_reply)

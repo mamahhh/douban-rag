@@ -17,14 +17,28 @@ from app.rag.preprocessing import load_and_process_file
 init_settings()
 
 
-def get_vector_store():
-    """Get or create the ChromaDB vector store."""
+def get_vector_store(user_id: str = None):
+    """
+    Get or create the ChromaDB vector store.
+    
+    Args:
+        user_id: Optional user ID for user-scoped collections.
+                 If provided, uses a user-specific collection.
+                 If None, uses the default shared collection (legacy mode).
+    """
     # Ensure persist directory exists
     os.makedirs(settings.PERSIST_DIR, exist_ok=True)
     
     # Persistent Client
     db = chromadb.PersistentClient(path=settings.PERSIST_DIR)
-    chroma_collection = db.get_or_create_collection("douban_history")
+    
+    # Use user-specific collection if user_id provided
+    if user_id:
+        collection_name = f"douban_collection_{user_id}"
+    else:
+        collection_name = "douban_history"  # Legacy default
+    
+    chroma_collection = db.get_or_create_collection(collection_name)
     vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
     return vector_store
 
@@ -42,9 +56,15 @@ def process_douban_file(file_path: str) -> List[Document]:
     return load_and_process_file(file_path)
 
 
-def create_index(documents: List[Document]):
-    """Create a vector store index from documents."""
-    vector_store = get_vector_store()
+def create_index(documents: List[Document], user_id: str = None):
+    """
+    Create a vector store index from documents.
+    
+    Args:
+        documents: List of documents to index
+        user_id: Optional user ID for user-scoped storage
+    """
+    vector_store = get_vector_store(user_id=user_id)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     
     index = VectorStoreIndex.from_documents(
@@ -53,9 +73,14 @@ def create_index(documents: List[Document]):
     return index
 
 
-def load_index():
-    """Load an existing vector store index."""
-    vector_store = get_vector_store()
+def load_index(user_id: str = None):
+    """
+    Load an existing vector store index.
+    
+    Args:
+        user_id: Optional user ID for user-scoped storage
+    """
+    vector_store = get_vector_store(user_id=user_id)
     index = VectorStoreIndex.from_vector_store(vector_store)
     return index
 

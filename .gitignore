@@ -36,6 +36,9 @@ ENV/
 .env
 .env.local
 
+# Firebase service account (contains secrets)
+firebase-service-account.json
+
 # Data files (user-specific)
 data/raw/
 data/chromadb/
