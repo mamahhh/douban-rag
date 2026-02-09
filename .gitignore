@@ -69,3 +69,4 @@ htmlcov/
 
 # Build artifacts
 *.pyc
+douban-rag.code-workspace
