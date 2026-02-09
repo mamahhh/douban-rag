@@ -25,6 +25,7 @@ ENV PATH=/root/.local/bin:$PATH
 # Copy application code
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
+COPY data/demo.xlsx ./data/demo.xlsx
 
 # Create data directories
 RUN mkdir -p /app/data/raw /app/data/chromadb

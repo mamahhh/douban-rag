@@ -13,10 +13,6 @@ from app.core.config import settings
 from app.rag.settings import init_settings
 from app.rag.preprocessing import load_and_process_file
 
-# Initialize LLM and embedding settings
-init_settings()
-
-
 def get_vector_store(user_id: str = None):
     """
     Get or create the ChromaDB vector store.
@@ -64,6 +60,9 @@ def create_index(documents: List[Document], user_id: str = None):
         documents: List of documents to index
         user_id: Optional user ID for user-scoped storage
     """
+    # Ensure settings are initialized
+    init_settings()
+    
     vector_store = get_vector_store(user_id=user_id)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     
@@ -80,6 +79,9 @@ def load_index(user_id: str = None):
     Args:
         user_id: Optional user ID for user-scoped storage
     """
+    # Ensure settings are initialized
+    init_settings()
+    
     vector_store = get_vector_store(user_id=user_id)
     index = VectorStoreIndex.from_vector_store(vector_store)
     return index

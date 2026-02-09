@@ -16,3 +16,5 @@ streamlit
 requests
 firebase-admin
 python-jose[cryptography]
+pytest
+httpx

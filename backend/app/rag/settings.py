@@ -9,16 +9,29 @@ _reranker = None
 # Number of results to return from reranker
 _TOP_N = 10
 
-def init_settings():
-    # LLM: Gemini 3 Pro (Google's most advanced model)
-    Settings.llm = Gemini(model_name="models/gemini-3-pro-preview", api_key=settings.GOOGLE_API_KEY)
-    
-    # Embeddings: BGE-M3 (Best for Chinese Embeddings)
-    Settings.embed_model = HuggingFaceEmbedding(
-        model_name="BAAI/bge-m3"
-    )
+# Initialization flag
+_initialized = False
 
-    return Settings
+def init_settings():
+    global _initialized
+    if _initialized:
+        return Settings
+        
+    try:
+        # LLM: Gemini 3 Pro (Google's most advanced model)
+        Settings.llm = Gemini(model_name="models/gemini-3-pro-preview", api_key=settings.GOOGLE_API_KEY)
+        
+        # Embeddings: BGE-M3 (Best for Chinese Embeddings)
+        Settings.embed_model = HuggingFaceEmbedding(
+            model_name="BAAI/bge-m3"
+        )
+        
+        _initialized = True
+        return Settings
+    except Exception as e:
+        print(f"Error initializing settings: {e}")
+        # Don't set _initialized to True so we can retry later
+        raise e
 
 def get_reranker():
     """Get the BGE-Reranker-v2-m3 reranker instance."""
