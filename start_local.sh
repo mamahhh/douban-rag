@@ -34,9 +34,9 @@ cd ..
 sleep 2
 
 # Start Frontend
-echo "Starting Frontend (port 8501)..."
+echo "Starting Frontend (port 3000)..."
 cd frontend
-python -m streamlit run app.py --server.port 8501 &
+npm run dev &
 FRONTEND_PID=$!
 cd ..
 

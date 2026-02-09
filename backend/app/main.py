@@ -8,7 +8,9 @@ app = FastAPI(title="Douban RAG System", version="0.1.0")
 
 # CORS setup for Streamlit
 origins = [
-    "http://localhost:8501",
+    "http://localhost:8501",  # Streamlit
+    "http://localhost:3000",  # Next.js
+    "https://douban-rag-*.a.run.app",
     "http://127.0.0.1:8501",
 ]
 
