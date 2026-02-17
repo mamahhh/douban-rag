@@ -17,6 +17,7 @@ export default function LoginPage() {
         e.preventDefault();
         setError(""); // Clear previous errors
         try {
+            if (!auth) throw new Error("Auth not initialized");
             await signInWithEmailAndPassword(auth, email, password);
             router.push("/dashboard");
         } catch (err: any) {
@@ -27,6 +28,7 @@ export default function LoginPage() {
     const handleGoogleLogin = async () => {
         setError(""); // Clear previous errors
         try {
+            if (!auth) throw new Error("Auth not initialized");
             const provider = new GoogleAuthProvider();
             await signInWithPopup(auth, provider);
             router.push("/dashboard");

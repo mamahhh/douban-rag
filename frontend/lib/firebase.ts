@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -10,8 +10,14 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
+// Only initialize Firebase on the client side.
+// During SSR/prerendering (e.g. /_not-found), `auth` will be null,
+// which is safe because all auth usage is inside useEffect or event handlers.
+let auth: Auth | null = null;
+
+if (typeof window !== "undefined") {
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+}
 
 export { auth };
