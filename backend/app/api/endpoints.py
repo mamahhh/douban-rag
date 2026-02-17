@@ -9,8 +9,9 @@ import shutil
 import os
 import json
 import time
-from typing import Generator, Optional
+from typing import Generator, List, Optional
 from app.core.config import settings
+from app.core.chat_history import save_message, get_messages, clear_messages, save_upload_status, get_upload_status
 from app.rag.ingestion import create_index, get_vector_store
 from app.rag.preprocessing import (
     detect_media_type, detect_status, process_dataframe
@@ -162,6 +163,8 @@ def stream_progress(file_path: str, user_id: str = None) -> Generator[str, None,
         
         # Complete
         total_time = time.time() - start_time
+        # Persist upload status for this user
+        save_upload_status(user_id, total_docs, media_type_counts)
         yield f"data: {json.dumps({'stage': 'complete', 'progress': 100, 'message': f'完成! 共处理 {total_docs} 条记录', 'total_time': f'{total_time:.1f}秒', 'media_types': media_type_counts, 'documents_processed': total_docs})}\n\n"
         
     except Exception as e:
@@ -254,6 +257,9 @@ async def upload_file(
         
         # Create index with user-scoped storage
         create_index(documents, user_id=user.uid)
+
+        # Persist upload status
+        save_upload_status(user.uid, len(documents), media_type_counts)
         
         return UploadResponse(
             message="File uploaded and indexed successfully",
@@ -277,12 +283,21 @@ async def chat(
     Chat with the RAG system about your Douban history.
     
     Requires authentication. Only queries user's own data.
+    Messages are persisted to chat history.
     """
     try:
+        # Save user message to history
+        save_message(user.uid, "user", request.message)
+
         # Get chat engine with user-scoped data access
         chat_engine = get_chat_engine(user_id=user.uid)
         response = chat_engine.chat(request.message)
-        return ChatResponse(response=str(response))
+        response_str = str(response)
+
+        # Save assistant response to history
+        save_message(user.uid, "assistant", response_str)
+
+        return ChatResponse(response=response_str)
     except Exception as e:
         error_str = str(e)
         if "No index found" in error_str or "collection" in error_str.lower():
@@ -291,6 +306,37 @@ async def chat(
                 detail="No data indexed yet. Please upload a Douban export file first."
             )
         raise HTTPException(status_code=500, detail=error_str)
+
+
+@router.get("/data/status")
+async def get_data_status(user: User = Depends(get_current_user)):
+    """
+    Get the user's current data upload status.
+    
+    Returns upload details if data has been uploaded, or null.
+    """
+    status = get_upload_status(user.uid)
+    return {"status": status}
+
+
+@router.get("/chat/history")
+async def get_chat_history(user: User = Depends(get_current_user)):
+    """
+    Get the authenticated user's chat history.
+    
+    Returns up to 100 most recent messages, oldest first.
+    """
+    messages = get_messages(user.uid)
+    return {"messages": messages}
+
+
+@router.delete("/chat/history")
+async def delete_chat_history(user: User = Depends(get_current_user)):
+    """
+    Clear the authenticated user's chat history.
+    """
+    deleted = clear_messages(user.uid)
+    return {"message": f"Deleted {deleted} messages"}
 
 
 @router.get("/auth/verify")

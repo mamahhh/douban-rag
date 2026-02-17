@@ -37,3 +37,43 @@ def test_chat(client: TestClient):
     
     assert response.status_code == 200
     assert response.json() == {"response": "This is a mock response."}
+
+
+def test_chat_saves_history(client: TestClient):
+    """Test that chat messages are saved to history."""
+    # Send a chat message
+    client.post("/api/chat", json={"message": "Hello!"})
+
+    # Fetch history
+    response = client.get("/api/chat/history")
+    assert response.status_code == 200
+    data = response.json()
+    messages = data["messages"]
+    assert len(messages) >= 2  # user + assistant
+    assert messages[-2]["role"] == "user"
+    assert messages[-2]["content"] == "Hello!"
+    assert messages[-1]["role"] == "assistant"
+    assert messages[-1]["content"] == "This is a mock response."
+
+
+def test_chat_history_empty(client: TestClient):
+    """Test that history starts empty (per-user isolation)."""
+    # Clear any prior messages first
+    client.delete("/api/chat/history")
+    response = client.get("/api/chat/history")
+    assert response.status_code == 200
+    assert response.json()["messages"] == []
+
+
+def test_clear_chat_history(client: TestClient):
+    """Test clearing chat history."""
+    # Send a message to create history
+    client.post("/api/chat", json={"message": "Test"})
+
+    # Clear it
+    response = client.delete("/api/chat/history")
+    assert response.status_code == 200
+
+    # Verify empty
+    response = client.get("/api/chat/history")
+    assert response.json()["messages"] == []

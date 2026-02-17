@@ -46,6 +46,7 @@ gcp-key.json
 # Data files (user-specific)
 data/raw/
 data/chromadb/
+*.db
 
 # Logs
 *.log

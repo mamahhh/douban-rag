@@ -8,7 +8,7 @@ import { auth } from "@/lib/firebase";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import { Upload, Send, LogOut, FileText, Music, Film, Book, Gamepad2, Mic2, Database } from "lucide-react";
+import { Upload, Send, LogOut, FileText, Music, Film, Book, Gamepad2, Mic2, Database, Trash2 } from "lucide-react";
 
 // Types
 interface Message {
@@ -43,6 +43,46 @@ export default function Dashboard() {
             router.push("/auth/login");
         }
     }, [user, loading, isDemo, router]);
+
+    // Load chat history and data status on mount
+    useEffect(() => {
+        const loadUserData = async () => {
+            try {
+                const token = user ? await user.getIdToken() : (isDemo ? "demo-token" : "");
+                if (!token) return;
+
+                // Load chat history
+                const historyRes = await fetch(`${BACKEND_URL}/api/chat/history`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (historyRes.ok) {
+                    const data = await historyRes.json();
+                    if (data.messages && data.messages.length > 0) {
+                        setMessages(data.messages.map((m: any) => ({ role: m.role, content: m.content })));
+                    }
+                }
+
+                // Load upload/data status
+                const statusRes = await fetch(`${BACKEND_URL}/api/data/status`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (statusRes.ok) {
+                    const data = await statusRes.json();
+                    if (data.status) {
+                        setUploadResult({
+                            documents_processed: data.status.documents_processed,
+                            media_types: data.status.media_types,
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load user data:", err);
+            }
+        };
+        if (!loading && (user || isDemo)) {
+            loadUserData();
+        }
+    }, [user, loading, isDemo]);
 
     // Scroll to bottom of chat
     useEffect(() => {
@@ -307,6 +347,26 @@ export default function Dashboard() {
                             <p className="text-xs text-slate-500 dark:text-gray-500 truncate">{isDemo ? "Demo Mode" : "Free Plan"}</p>
                         </div>
                     </div>
+                    {messages.length > 0 && (
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const token = user ? await user.getIdToken() : (isDemo ? "demo-token" : "");
+                                    await fetch(`${BACKEND_URL}/api/chat/history`, {
+                                        method: "DELETE",
+                                        headers: { Authorization: `Bearer ${token}` },
+                                    });
+                                    setMessages([]);
+                                } catch (err) {
+                                    console.error("Failed to clear history:", err);
+                                }
+                            }}
+                            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-slate-500 dark:text-gray-400 hover:bg-amber-50 dark:hover:bg-amber-900/10 hover:text-amber-600 transition-colors mb-1"
+                        >
+                            <Trash2 size={18} />
+                            <span className="text-sm font-medium">Clear History</span>
+                        </button>
+                    )}
                     <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-slate-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 transition-colors">
                         <LogOut size={18} />
                         <span className="text-sm font-medium">Log Out</span>
