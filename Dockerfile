@@ -66,7 +66,6 @@ COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
 COPY --from=frontend-builder /app/frontend/node_modules ./frontend/node_modules
 COPY --from=frontend-builder /app/frontend/package.json ./frontend/package.json
-COPY --from=frontend-builder /app/frontend/public ./frontend/public
 
 # Copy demo data
 COPY data/demo.xlsx ./data/demo.xlsx
