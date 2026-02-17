@@ -5,7 +5,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import axios from "axios";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 import { Upload, Send, LogOut, FileText, Music, Film, Book, Gamepad2, Mic2, Database } from "lucide-react";
 
 // Types
@@ -51,12 +53,16 @@ export default function Dashboard() {
         setIsUploading(true);
         setUploadStatus("Loading demo data...");
         try {
-            const response = await axios.post("/api/demo");
+            const response = await fetch("/api/demo", { method: "POST" });
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            }
             setUploadStatus("Demo data loaded successfully!");
             setTimeout(() => setUploadStatus(""), 3000);
         } catch (error: any) {
             console.error(error);
-            setUploadStatus(`Error: ${error.response?.data?.error || error.message}`);
+            setUploadStatus(`Error: ${error.message}`);
         } finally {
             setIsUploading(false);
         }
@@ -177,13 +183,21 @@ export default function Dashboard() {
         try {
             const token = user ? await user.getIdToken() : (isDemo ? "demo-token" : "");
 
-            const response = await axios.post(
-                `${BACKEND_URL}/api/chat`,
-                { message: newMessage.content },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            const response = await fetch(`${BACKEND_URL}/api/chat`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ message: newMessage.content }),
+            });
 
-            const botReply = response.data.response;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const botReply = data.response;
             setMessages((prev) => [...prev, { role: "assistant", content: botReply }]);
         } catch (error: any) {
             console.error(error);
@@ -318,7 +332,40 @@ export default function Dashboard() {
                                     ? 'bg-primary text-background-dark rounded-br-none'
                                     : 'bg-white dark:bg-[#1c3a29] text-slate-800 dark:text-gray-100 rounded-bl-none border border-gray-200 dark:border-white/5'
                                     }`}>
-                                    {msg.content}
+                                    {msg.role === 'assistant' ? (
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                                                strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                                em: ({ children }) => <em className="italic">{children}</em>,
+                                                h1: ({ children }) => <h1 className="text-xl font-bold mb-2 mt-3">{children}</h1>,
+                                                h2: ({ children }) => <h2 className="text-lg font-bold mb-2 mt-3">{children}</h2>,
+                                                h3: ({ children }) => <h3 className="text-base font-bold mb-1.5 mt-2">{children}</h3>,
+                                                ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                                                ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                                                li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                                                a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:opacity-80">{children}</a>,
+                                                code: ({ className, children, ...props }) => {
+                                                    const isInline = !className;
+                                                    return isInline
+                                                        ? <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>
+                                                        : <code className={`block bg-black/10 dark:bg-black/30 p-3 rounded-lg text-sm font-mono overflow-x-auto my-2 ${className || ''}`} {...props}>{children}</code>;
+                                                },
+                                                pre: ({ children }) => <pre className="my-2">{children}</pre>,
+                                                blockquote: ({ children }) => <blockquote className="border-l-4 border-primary/40 pl-3 my-2 italic opacity-90">{children}</blockquote>,
+                                                table: ({ children }) => <div className="overflow-x-auto my-2"><table className="min-w-full text-sm border-collapse">{children}</table></div>,
+                                                thead: ({ children }) => <thead className="bg-black/5 dark:bg-white/5">{children}</thead>,
+                                                th: ({ children }) => <th className="border border-gray-300 dark:border-white/10 px-3 py-1.5 text-left font-semibold">{children}</th>,
+                                                td: ({ children }) => <td className="border border-gray-300 dark:border-white/10 px-3 py-1.5">{children}</td>,
+                                                hr: () => <hr className="my-3 border-gray-300 dark:border-white/10" />,
+                                            }}
+                                        >
+                                            {msg.content}
+                                        </ReactMarkdown>
+                                    ) : (
+                                        msg.content
+                                    )}
                                 </div>
                             </div>
                         ))
