@@ -1,102 +1,86 @@
-# 豆瓣 RAG 系统 📚
+# Douban RAG System
 
-一个基于 RAG（检索增强生成）技术的豆瓣历史查询系统，支持电影、书籍、音乐和游戏记录。
+一个现代化的智能 RAG（检索增强生成）系统，用于管理你的豆瓣历史记录。使用自然语言与你的电影、书籍、音乐和游戏收藏进行对话。
+
+![Douban RAG 界面](interface.png)
 
 ## 功能特性
 
-- 📤 **上传豆瓣导出数据** - 支持[豆伴](https://chromewebstore.google.com/detail/%E8%B1%86%E4%BC%B4%EF%BC%9A%E8%B1%86%E7%93%A3%E8%B4%A6%E5%8F%B7%E5%A4%87%E4%BB%BD%E5%B7%A5%E5%85%B7/ghppfgfeoafdcaebjoglabppkfmbcjdd)等工具导出的 CSV 和 XLSX 文件
-- 🔍 **语义搜索** - 基于语义理解查找内容，而非简单关键词匹配
-- 💬 **自然语言问答** - 用中文询问你的观影/阅读历史
-- 🔄 **MCP 集成** - 连接 Claude、Gemini、ChatGPT 等 AI 助手
-- 📊 **数据统计** - 查看媒体类型、评分分布等统计信息
+- **个人知识库**：上传你的豆瓣导出文件（CSV/XLSX），创建一个可搜索的个人数据库。
+- **智能对话**：使用自然语言询问关于你的历史记录的问题（例如：“我觉得哪些电影结局很糟糕？”）。
+- **丰富上下文**：系统检索你的具体评论、评分和备注，生成个性化的回答。
+- **统计仪表盘**：精准追踪已处理的项目数量：
+  - 电影
+  - 书籍
+  - 音乐
+  - 游戏
+- **现代化界面**：专业的暗色模式界面，并在侧边栏提供实时状态更新。
+- **安全认证**：由 Firebase Auth 支持的用户账户系统。
 
 ## 技术栈
 
-- **后端**: FastAPI + LlamaIndex + ChromaDB
-- **前端**: Streamlit
-- **向量模型**: BGE-M3 (BAAI/bge-m3)
-- **重排序模型**: BGE-Reranker-v2-m3
-- **大语言模型**: Google Gemini
+- **前端**：Next.js 14 (App Router), TypeScript, Tailwind CSS
+- **后端**：FastAPI, Python 3.11
+- **RAG 引擎**：LlamaIndex, ChromaDB
+- **Embedding 模型**：BGE-M3 (多语言支持)
+- **大语言模型**：Google Gemini
+- **认证**：Firebase Authentication
+- **部署**：Google Cloud Run (Docker)
 
 ## 快速开始
 
-### 1. 环境配置
+### 前置要求
+
+- Node.js 18+
+- Python 3.11+
+- Firebase 项目
+- Google Gemini API Key
+
+### 1. 后端设置
 
 ```bash
-# 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 安装依赖
-pip install -r backend/requirements.txt
-pip install streamlit requests
-```
-
-### 2. 配置 API 密钥
-
-```bash
-cp .env.example .env
-# 编辑 .env 文件，填入你的 GOOGLE_API_KEY
-```
-
-### 3. 启动应用
-
-```bash
-# 终端 1: 启动后端
 cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 创建 .env 文件并填入你的密钥
+# GOOGLE_API_KEY=...
 uvicorn app.main:app --reload --port 8000
+```
 
-# 终端 2: 启动前端
+### 2. 前端设置
+
+```bash
 cd frontend
-streamlit run app.py --server.port 8501
+npm install
+
+# 创建 .env.local 并配置 Firebase
+# NEXT_PUBLIC_FIREBASE_API_KEY=...
+# NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+
+npm run dev
 ```
 
-### 4. 上传数据
+### 3. 使用说明
 
-1. 打开 http://localhost:8501
-2. 上传你的豆瓣导出文件（[豆伴](https://chromewebstore.google.com/detail/%E8%B1%86%E4%BC%B4%EF%BC%9A%E8%B1%86%E7%93%A3%E8%B4%A6%E5%8F%B7%E5%A4%87%E4%BB%BD%E5%B7%A5%E5%85%B7/ghppfgfeoafdcaebjoglabppkfmbcjdd)导出的 Excel 文件）
-3. 开始与你的数据对话！
+1.  在浏览器打开 `http://localhost:3000`
+2.  登录 / 注册账户
+3.  上传你的豆瓣导出文件（支持来自 [豆伴](https://chromewebstore.google.com/detail/%E8%B1%86%E4%BC%B4%EF%BC%9A%E8%B1%86%E7%93%A3%E8%B4%A6%E5%8F%B7%E5%A4%87%E4%BB%BD%E5%B7%A5%E5%85%B7/ghppfgfeoafdcaebjoglabppkfmbcjdd) 的导出）
+4.  等待处理完成（侧边栏会实时更新统计数据）
+5.  开始对话！
 
-## MCP 集成
+## Docker / 部署
 
-将豆瓣 RAG 系统连接到 AI 助手：
+本项目已容器化，便于部署。
 
-```json
-{
-  "mcpServers": {
-    "douban-rag": {
-      "command": "python",
-      "args": ["mcp_server.py"],
-      "cwd": "/path/to/douban-rag"
-    }
-  }
-}
+```bash
+# 使用 Docker Compose 构建并运行（可选）
+docker-compose up --build
 ```
 
-### 可用的 MCP 工具
+或者使用包含的 `cloudbuild.yaml` 部署到 Google Cloud Run。
 
-| 工具 | 描述 |
-|------|------|
-| `search_douban` | 语义搜索豆瓣历史记录 |
-| `ask_douban` | 用自然语言提问 |
-| `get_stats` | 获取统计概览 |
-
-## 项目结构
-
-```
-douban-rag/
-├── backend/
-│   ├── app/
-│   │   ├── api/          # FastAPI 接口
-│   │   ├── core/         # 配置文件
-│   │   └── rag/          # RAG 逻辑（数据处理、检索、引擎）
-│   └── requirements.txt
-├── frontend/
-│   └── app.py            # Streamlit 界面
-├── mcp_server.py         # MCP 服务器
-└── data/                 # 数据目录（已忽略）
-```
-
-## 许可证
+## 许可证 (License)
 
 MIT
