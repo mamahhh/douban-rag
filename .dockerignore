@@ -1,0 +1,35 @@
+# Virtual environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+frontend/node_modules/
+frontend/.next/
+
+# Local data (demo.xlsx is copied explicitly in Dockerfile)
+data/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Docs
+*.md
+docs/
+interface.png
+
+# Local scripts
+start_local.sh
+mcp_server.py
+
+# Misc
+.env
+.env.*
+*.log

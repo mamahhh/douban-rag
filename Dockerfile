@@ -7,7 +7,6 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
 
-# Copy frontend source and build
 # Copy frontend source
 COPY frontend/ ./
 
@@ -48,7 +47,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install Node.js for Next.js
+# Install Node.js for Next.js standalone server
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
@@ -62,10 +61,10 @@ ENV PATH=/root/.local/bin:$PATH
 # Copy backend code
 COPY backend/ ./backend/
 
-# Copy Next.js build and dependencies
-COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
-COPY --from=frontend-builder /app/frontend/node_modules ./frontend/node_modules
-COPY --from=frontend-builder /app/frontend/package.json ./frontend/package.json
+# Copy Next.js standalone build (much smaller than full node_modules)
+COPY --from=frontend-builder /app/frontend/.next/standalone ./frontend/
+COPY --from=frontend-builder /app/frontend/.next/static ./frontend/.next/static
+COPY --from=frontend-builder /app/frontend/public ./frontend/public
 
 # Copy demo data
 COPY data/demo.xlsx ./data/demo.xlsx
